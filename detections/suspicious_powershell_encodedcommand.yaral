@@ -1,0 +1,19 @@
+rule Suspicious_PowerShell_EncodedCommand {
+  meta:
+    author = "Ethan Bailey (lab)"
+    description = "PowerShell launched with EncodedCommand parameter"
+    version = "1.0"
+
+  events:
+    $e.metadata.event_type = "PROCESS_LAUNCH"
+    // Either parsed log type or command line regex
+    ($e.metadata.log_type = "POWERSHELL") or
+    re.regex(strings.to_lower($e.target.process.command_line), "(?s).*-(enc|encodedcommand)\s+[a-z0-9+/=]{20,}.*")
+
+  outcome:
+    $cmd = $e.target.process.command_line
+    $risk_score = 70
+
+  condition:
+    $e
+}

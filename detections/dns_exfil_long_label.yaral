@@ -1,0 +1,18 @@
+rule DNS_Long_Label_Exfil {
+  meta:
+    author = "Ethan Bailey (lab)"
+    description = "DNS query where fqdn length suggests tunneling/exfiltration"
+    version = "1.0"
+
+  events:
+    $dns.metadata.event_type = "NETWORK_DNS"
+    $qname = $dns.network.dns.questions.name
+
+  outcome:
+    $fqdn = $qname
+    $len = strings.length($qname)
+    $risk_score = max(50 + if($len > 60, 25, 0))
+
+  condition:
+    $dns and $len > 60
+}

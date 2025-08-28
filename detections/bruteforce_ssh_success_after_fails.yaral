@@ -1,0 +1,30 @@
+rule BruteForce_SSH_Success_After_Fails {
+  meta:
+    author = "Ethan Bailey (lab)"
+    description = "Multiple SSH login failures followed by a success on the same host/user within 15m"
+    version = "1.0"
+
+  events:
+    $fail.metadata.event_type = "USER_LOGIN"
+    $fail.target.application = "sshd"
+    $fail.security_result.action = "BLOCK"
+    $user = $fail.target.user.userid
+    $host = $fail.target.hostname
+
+    $success.metadata.event_type = "USER_LOGIN"
+    $success.target.application = "sshd"
+    $success.security_result.action = "ALLOW"
+    $success.target.user.userid = $user
+    $success.target.hostname = $host
+
+  match:
+    // correlate failures and success over a 15 minute window
+    $user, $host over 15m
+
+  outcome:
+    $fail_count = count($fail.metadata.id)
+    $risk_score = max( 60 + if(#fail >= 5, 15, 0) )
+
+  condition:
+    #fail >= 5 and $success
+}
